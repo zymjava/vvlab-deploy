@@ -36,7 +36,12 @@ bash 04-setup-nginx-upstream.sh
 | `03-install-ingress.sh` | 在 K3s 中安装 Nginx Ingress，镜像改为阿里云 |
 | `04-setup-nginx-upstream.sh` | 写 `/etc/nginx/conf.d/vvlab-upstream.conf`，反代到 Ingress NodePort（透传 Host 支持多域名） |
 | `vvlab-sites.yaml` | 三站点 zym/zxy/photo 的 Deployment + Service + Ingress |
+| `vvlab-sites-zxy-only.yaml` | 仅 zxy 站点（zxy.vvlab.xyz）的 Deployment + Service + Ingress |
 | `DEPLOY-SITES.md` | **三站点部署步骤**（域名已解析、ACR 个人版从 GitHub 构建镜像） |
+| **TROUBLESHOOTING.md** | **排障记录**（zxy 部署中遇到的 502、ACR 拉取、镜像标签、构建超时等及解决方式） |
+| **发布步骤-非开发必读.md** | **发布新版本详细步骤**（改内容 → 推送 → 构建 → 服务器重启），非开发也能按步骤操作 |
+| **MIGRATION.md** | **服务器迁移说明**：服务器上直接创建的配置清单、如何在新机复现（Nginx 配置、ACR 密钥、K8s 资源） |
+| **nginx/vvlab-upstream.conf.example** | 主机 Nginx 反代配置示例（端口以 04 脚本生成为准，本文件供迁移参考） |
 
 ## 镜像与网络说明
 
@@ -63,4 +68,7 @@ bash 04-setup-nginx-upstream.sh
 
 ## 详细说明与排障
 
-本仓库在本机/Agent 中完成的安装步骤、架构说明、80 端口冲突原因及修复方式等，均记录在 **[OPERATIONS.md](./OPERATIONS.md)**，便于复现和理解。
+- **安装步骤、架构、80 端口冲突等**：**[OPERATIONS.md](./OPERATIONS.md)**。
+- **zxy 部署排障（502、ACR 拉取、镜像标签、构建超时）**：**[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)**。
+- **非开发发布新版本（改内容→推送→构建→重启）**：**[发布步骤-非开发必读.md](./发布步骤-非开发必读.md)**。
+- **服务器迁移（配置清单与在新机复现）**：**[MIGRATION.md](./MIGRATION.md)**。

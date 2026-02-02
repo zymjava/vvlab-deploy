@@ -1,0 +1,44 @@
+# 主机 Nginx 配置示例：反代到 K3s Nginx Ingress（NodePort）
+# 实际部署时由 04-setup-nginx-upstream.sh 根据当前集群 Ingress NodePort 自动生成并写入 /etc/nginx/conf.d/vvlab-upstream.conf
+# 本文件仅作版本记录与迁移参考；端口 31550/32589 为当前实例实测值，新环境可能不同，请在新服务器上执行 04 脚本生成
+#
+# 迁移或新机部署：在服务器上执行 cd /root/deploy && sudo bash 04-setup-nginx-upstream.sh
+# 若无法执行脚本，可手动创建 /etc/nginx/conf.d/vvlab-upstream.conf，端口用 kubectl get svc -n ingress-nginx ingress-nginx-controller 查看
+
+upstream k3s_ingress_http {
+    server 127.0.0.1:31550;
+}
+upstream k3s_ingress_https {
+    server 127.0.0.1:32589;
+}
+
+# default_server：所有请求反代到 Ingress，透传 Host，便于按子域名分流（zym/zxy/photo.vvlab.xyz）
+server {
+    listen 80 default_server;
+    listen 8080 default_server;
+    server_name vvlab.xyz www.vvlab.xyz zym.vvlab.xyz zxy.vvlab.xyz photo.vvlab.xyz 139.224.31.98 _;
+    location / {
+        proxy_pass http://127.0.0.1:31550;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# 申请证书后取消注释并 nginx -t && systemctl reload nginx
+# server {
+#     listen 443 ssl;
+#     server_name vvlab.xyz www.vvlab.xyz;
+#     ssl_certificate     /etc/nginx/ssl/vvlab.xyz.pem;
+#     ssl_certificate_key /etc/nginx/ssl/vvlab.xyz.key;
+#     location / {
+#         proxy_pass https://k3s_ingress_https;
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#         proxy_ssl_verify off;
+#     }
+# }

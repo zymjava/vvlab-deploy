@@ -142,8 +142,9 @@ kubectl patch svc traefik -n kube-system --type=merge -p '{"spec":{"type":"Clust
 |------|----------|----------|
 | K3s 拉镜像失败 | registries 未生效或写错 | 检查 `/etc/rancher/k3s/registries.yaml`，重启 K3s |
 | Ingress 镜像拉取失败 | 镜像地址或网络 | 用 `ctr -n k8s.io image pull ...` 在节点上试拉，或改用 ACR 等国内源 |
-| 主机 Nginx 502 | Ingress 未就绪或 NodePort 不对 | `kubectl get pods -n ingress-nginx`、`kubectl get svc -n ingress-nginx`，和 `vvlab-upstream.conf` 里端口一致 |
+| **主机 Nginx 502**（访问 vvlab.xyz 或 zxy.vvlab.xyz 等） | Ingress 未就绪或 **NodePort 与 vvlab-upstream.conf 不一致** | 执行 `kubectl get svc -n ingress-nginx ingress-nginx-controller` 看实际 NodePort（如 31550）；把 `/etc/nginx/conf.d/vvlab-upstream.conf` 里 30080 改为该端口，`nginx -t && systemctl reload nginx`。详见 **TROUBLESHOOTING.md** |
 | **80 返回 404，8080 正常** | Traefik 的 ServiceLB 占用主机 80/443 | 执行上面「修复」里的 `kubectl patch`，把 traefik 改为 ClusterIP |
 | welcome Pod 一直 ImagePullBackOff | 镜像拉不到 | 换镜像（如 DaoCloud/ACR），或本机导出镜像再 `ctr image import`，见 README 示例欢迎页说明 |
+| zxy/zym/photo Pod ErrImagePull、authorization failed | ACR 拉取密钥错误或未创建 | 见 **TROUBLESHOOTING.md** 问题二；在服务器上重建 acr-secret 并 rollout restart |
 
-更多细节以本仓库脚本和配置为准；若你复现时环境不同，可对照本文档逐步对照检查。
+更多细节以本仓库脚本和配置为准。**zxy 站点部署过程中的排障（502、ACR 拉取、镜像标签、构建超时等）** 见 **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)**。

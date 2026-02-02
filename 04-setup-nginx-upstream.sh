@@ -6,8 +6,9 @@ set -e
 # 若未设置，从集群读取 Ingress NodePort
 export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
 if command -v kubectl &>/dev/null && kubectl get svc -n ingress-nginx ingress-nginx-controller &>/dev/null; then
-    INGRESS_HTTP_PORT=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.spec.ports[?(@.name=="http")].nodePort}')
-    INGRESS_HTTPS_PORT=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
+    # 按端口号 80/443 取 NodePort，避免端口名不一致
+    INGRESS_HTTP_PORT=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.spec.ports[?(@.port==80)].nodePort}')
+    INGRESS_HTTPS_PORT=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.spec.ports[?(@.port==443)].nodePort}')
 fi
 INGRESS_HTTP_PORT="${INGRESS_HTTP_PORT:-30080}"
 INGRESS_HTTPS_PORT="${INGRESS_HTTPS_PORT:-30443}"

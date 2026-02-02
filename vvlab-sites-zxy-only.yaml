@@ -1,0 +1,62 @@
+# 仅部署 zxy 站点（个人简介），用于 zxy.vvlab.xyz
+# 镜像：阿里云上海个人版 zxy-repo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zxy-site
+  namespace: demo
+  labels:
+    app: zxy-site
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zxy-site
+  template:
+    metadata:
+      labels:
+        app: zxy-site
+    spec:
+      containers:
+        - name: site
+          image: crpi-c87ddoa33spg7s3f.cn-shanghai.personal.cr.aliyuncs.com/zzlab_imagespace/zxy-repo:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+      imagePullSecrets:
+        - name: acr-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zxy-site
+  namespace: demo
+spec:
+  selector:
+    app: zxy-site
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sites
+  namespace: demo
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: zxy.vvlab.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zxy-site
+                port:
+                  number: 80

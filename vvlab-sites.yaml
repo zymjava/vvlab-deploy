@@ -1,11 +1,6 @@
-# 三站点：zym / zxy / photo
-# 1. 替换 <ACR_命名空间> 为你的 ACR 命名空间（如 myname）
-# 2. 若镜像为私有，先在 demo 命名空间创建拉取密钥并取消注释 imagePullSecrets
-#    kubectl create secret docker-registry acr-secret \
-#      --docker-server=registry.cn-hangzhou.aliyuncs.com \
-#      --docker-username=你的ACR用户名 --docker-password=你的ACR密码 \
-#      -n demo
-# 3. 某站点镜像未就绪时，可先注释该 Deployment，Ingress 可先 apply
+# 三站点：使用阿里云上海个人版 ACR
+# 镜像：crpi-c87ddoa33spg7s3f.cn-shanghai.personal.cr.aliyuncs.com/zzlab_imagespace/{zxy-repo|zym-repo|photo-repo}
+# 私有仓库需在 demo 命名空间创建 acr-secret，并在下方启用 imagePullSecrets
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -26,11 +21,12 @@ spec:
     spec:
       containers:
         - name: site
-          image: registry.cn-hangzhou.aliyuncs.com/<ACR_命名空间>/zym-space:latest
+          image: crpi-c87ddoa33spg7s3f.cn-shanghai.personal.cr.aliyuncs.com/zzlab_imagespace/zym-repo:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80
-      imagePullSecrets: []
+      imagePullSecrets:
+        - name: acr-secret
 ---
 apiVersion: v1
 kind: Service
@@ -64,11 +60,12 @@ spec:
     spec:
       containers:
         - name: site
-          image: registry.cn-hangzhou.aliyuncs.com/<ACR_命名空间>/zxy-space:latest
+          image: crpi-c87ddoa33spg7s3f.cn-shanghai.personal.cr.aliyuncs.com/zzlab_imagespace/zxy-repo:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80
-      imagePullSecrets: []
+      imagePullSecrets:
+        - name: acr-secret
 ---
 apiVersion: v1
 kind: Service
@@ -102,11 +99,12 @@ spec:
     spec:
       containers:
         - name: site
-          image: registry.cn-hangzhou.aliyuncs.com/<ACR_命名空间>/photo-wall:latest
+          image: crpi-c87ddoa33spg7s3f.cn-shanghai.personal.cr.aliyuncs.com/zzlab_imagespace/photo-repo:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80
-      imagePullSecrets: []
+      imagePullSecrets:
+        - name: acr-secret
 ---
 apiVersion: v1
 kind: Service
