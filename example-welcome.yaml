@@ -1,0 +1,137 @@
+# 示例：欢迎页 Pod + Service + Ingress（用于测试 vvlab.xyz 访问效果）
+# 镜像说明：实例内 docker.io 受限，需先解决 nginx 镜像拉取再 apply 才能看到欢迎页，见 README
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: welcome-html
+  namespace: demo
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>欢迎 - vvlab.xyz</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+          color: #e8e8e8;
+          font-family: "Segoe UI", system-ui, sans-serif;
+        }
+        .card {
+          text-align: center;
+          padding: 3rem;
+          border-radius: 16px;
+          background: rgba(255,255,255,0.06);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+          max-width: 480px;
+        }
+        h1 { font-size: 2rem; margin-bottom: 1rem; color: #00d9ff; }
+        p { color: #b0b0b0; line-height: 1.6; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <h1>欢迎来到 vvlab.xyz</h1>
+        <p>这是运行在 K3s 中的示例欢迎页。</p>
+        <p>主机 Nginx → Ingress → 本 Pod，链路已打通。</p>
+      </div>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: welcome
+  namespace: demo
+  labels:
+    app: welcome
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: welcome
+  template:
+    metadata:
+      labels:
+        app: welcome
+    spec:
+      containers:
+        - name: welcome
+          image: docker.m.daocloud.io/library/nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+              readOnly: true
+      volumes:
+        - name: html
+          configMap:
+            name: welcome-html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: welcome
+  namespace: demo
+spec:
+  selector:
+    app: welcome
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: welcome
+  namespace: demo
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  rules:
+    # 不写 host：用 IP 直接访问（如备案前）或任意 Host 都会走欢迎页
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: welcome
+                port:
+                  number: 80
+    - host: vvlab.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: welcome
+                port:
+                  number: 80
+    - host: www.vvlab.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: welcome
+                port:
+                  number: 80

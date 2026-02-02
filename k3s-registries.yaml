@@ -1,0 +1,17 @@
+# K3s 私有镜像仓库/镜像站配置
+# 用于解决实例内无法访问 docker.io / registry.k8s.io 的问题
+# 文档: https://docs.k3s.io/installation/private-registry
+#
+# 说明：将以下内容安装前复制到 目标机器 /etc/rancher/k3s/registries.yaml
+# 安装 K3s 时会自动读取该文件（需在安装前创建好）
+
+mirrors:
+  "docker.io":
+    endpoint:
+      - "https://registry.cn-hangzhou.aliyuncs.com"
+  "registry.k8s.io":
+    endpoint:
+      - "https://registry.aliyuncs.com/google_containers"
+  "quay.io":
+    endpoint:
+      - "https://quay.mirrors.ustc.edu.cn"
