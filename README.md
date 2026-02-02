@@ -34,7 +34,9 @@ bash 04-setup-nginx-upstream.sh
 | `k3s-registries.yaml` | K3s 镜像源：docker.io → 杭州阿里云，registry.k8s.io → 阿里云 google_containers |
 | `02-install-k3s.sh` | 使用 Rancher 中国镜像安装 K3s，并写入上述 registries |
 | `03-install-ingress.sh` | 在 K3s 中安装 Nginx Ingress，镜像改为阿里云 |
-| `04-setup-nginx-upstream.sh` | 写 `/etc/nginx/conf.d/vvlab-upstream.conf`，反代到 Ingress NodePort |
+| `04-setup-nginx-upstream.sh` | 写 `/etc/nginx/conf.d/vvlab-upstream.conf`，反代到 Ingress NodePort（透传 Host 支持多域名） |
+| `vvlab-sites.yaml` | 三站点 zym/zxy/photo 的 Deployment + Service + Ingress |
+| `DEPLOY-SITES.md` | **三站点部署步骤**（域名已解析、ACR 个人版从 GitHub 构建镜像） |
 
 ## 镜像与网络说明
 

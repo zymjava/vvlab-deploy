@@ -24,16 +24,16 @@ upstream k3s_ingress_https {
     server 127.0.0.1:${INGRESS_HTTPS_PORT};
 }
 
-# 单一 default_server：所有 Host（含 IP 与域名）统一反代到 Ingress 并带 Host: vvlab.xyz
-# 若 80 被占用，先改用 8080；备案后可在前面用 SLB/其他反代 80->8080
+# default_server：所有请求反代到 Ingress，透传 Host，便于按子域名分流（zym/zxy/photo.vvlab.xyz）
+# 若 80 被占用，可先改用 8080；备案后可在前面用 SLB 反代 80->8080
 server {
     listen 80 default_server;
     listen 8080 default_server;
-    server_name vvlab.xyz www.vvlab.xyz 139.224.31.98 _;
+    server_name vvlab.xyz www.vvlab.xyz zym.vvlab.xyz zxy.vvlab.xyz photo.vvlab.xyz 139.224.31.98 _;
     location / {
         proxy_pass http://127.0.0.1:${INGRESS_HTTP_PORT};
         proxy_http_version 1.1;
-        proxy_set_header Host vvlab.xyz;
+        proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;

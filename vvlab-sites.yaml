@@ -1,0 +1,163 @@
+# 三站点：zym / zxy / photo
+# 1. 替换 <ACR_命名空间> 为你的 ACR 命名空间（如 myname）
+# 2. 若镜像为私有，先在 demo 命名空间创建拉取密钥并取消注释 imagePullSecrets
+#    kubectl create secret docker-registry acr-secret \
+#      --docker-server=registry.cn-hangzhou.aliyuncs.com \
+#      --docker-username=你的ACR用户名 --docker-password=你的ACR密码 \
+#      -n demo
+# 3. 某站点镜像未就绪时，可先注释该 Deployment，Ingress 可先 apply
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zym-site
+  namespace: demo
+  labels:
+    app: zym-site
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zym-site
+  template:
+    metadata:
+      labels:
+        app: zym-site
+    spec:
+      containers:
+        - name: site
+          image: registry.cn-hangzhou.aliyuncs.com/<ACR_命名空间>/zym-space:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+      imagePullSecrets: []
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zym-site
+  namespace: demo
+spec:
+  selector:
+    app: zym-site
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zxy-site
+  namespace: demo
+  labels:
+    app: zxy-site
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zxy-site
+  template:
+    metadata:
+      labels:
+        app: zxy-site
+    spec:
+      containers:
+        - name: site
+          image: registry.cn-hangzhou.aliyuncs.com/<ACR_命名空间>/zxy-space:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+      imagePullSecrets: []
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zxy-site
+  namespace: demo
+spec:
+  selector:
+    app: zxy-site
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: photo-site
+  namespace: demo
+  labels:
+    app: photo-site
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: photo-site
+  template:
+    metadata:
+      labels:
+        app: photo-site
+    spec:
+      containers:
+        - name: site
+          image: registry.cn-hangzhou.aliyuncs.com/<ACR_命名空间>/photo-wall:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+      imagePullSecrets: []
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: photo-site
+  namespace: demo
+spec:
+  selector:
+    app: photo-site
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sites
+  namespace: demo
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: zym.vvlab.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zym-site
+                port:
+                  number: 80
+    - host: zxy.vvlab.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zxy-site
+                port:
+                  number: 80
+    - host: photo.vvlab.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: photo-site
+                port:
+                  number: 80

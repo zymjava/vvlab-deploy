@@ -11,7 +11,7 @@
 - **已做**：
   - 在 `deploy/` 下准备好 01～04 脚本、`example-welcome.yaml`、`k3s-registries.yaml` 等；已在实例上执行并装好主机 Nginx、K3s、Nginx Ingress、welcome Pod。
   - 解决 80 端口冲突：将 K3s 自带的 Traefik Service 改为 ClusterIP，释放 80 给主机 Nginx；`http://139.224.31.98/` 已返回欢迎页。
-  - 规划三个子站：zym.vvlab.xyz（你的个人主页）、zxy.vvlab.xyz（爱人主页）、photo.vvlab.xyz（照片墙）；决定在 GitHub 建三个仓库，本地在 **vvlab** 下用三个目录（zym、zxy、photo）分别关联三个 GitHub 项目。
+  - 规划三个子站：zym.vvlab.xyz（你的个人主页）、zxy.vvlab.xyz（爱人主页）、photo.vvlab.xyz（照片墙）；已在 GitHub 建四个仓库，本地 **vvlab** 下四目录分别关联：**zym**→zym-space、**zxy**→zxy-space、**photo**→photo-wall、**deploy**→vvlab-deploy。
   - 文档中「vivilab」已全部改为「vvlab」；根目录重复脚本（02、04）已删，只保留 `deploy/` 下脚本。
 
 ---
