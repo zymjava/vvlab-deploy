@@ -30,8 +30,7 @@ kubectl -n demo delete secret mysql-secret --ignore-not-found=true
 
 kubectl -n demo create secret generic mysql-secret \
   --from-literal=MYSQL_ROOT_PASSWORD='你的root密码' \
-  --from-literal=MYSQL_PASSWORD='你的app密码' \
-  --from-literal=MYSQL_USER='appuser' 
+  --from-literal=MYSQL_PASSWORD='你的app密码'
 ```
 
 说明：
