@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+  namespace: demo
+data:
+  my.cnf: |
+    [mysqld]
+    # 2核2G 环境的保守配置（按你的方案保留核心参数）
+    innodb_buffer_pool_size = 512M
+    max_connections = 50
+    
+    # 若只用 InnoDB，这部分可以小一些
+    key_buffer_size = 32M
+    
+    # 每连接内存（乘 max_connections 会很大，务必设小）
+    sort_buffer_size = 1M
+    join_buffer_size = 1M
+    read_buffer_size = 1M
+    read_rnd_buffer_size = 1M
+    
+    # 临时表内存
+    tmp_table_size = 64M
+    max_heap_table_size = 64M
+    
+    # InnoDB 日志
+    innodb_log_file_size = 256M
+    
+    # 稍微放宽包限制
+    max_allowed_packet = 64M
+    
+    # 性能优先（可接受最多丢失约 1 秒数据；如需严格一致性可改回 1）
+    innodb_flush_log_at_trx_commit = 2
+    sync_binlog = 0
+    
+    # 建议：字符集（可选但通常更稳）
+    character-set-server = utf8mb4
+    collation-server = utf8mb4_unicode_ci
+

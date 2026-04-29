@@ -23,6 +23,7 @@
 | `vvlab-sites.yaml` | 三站点（zym/zxy/photo）部署 |
 | `run-on-server.sh` | 服务器一键执行：更新 Nginx、重建 ACR 密钥、部署 zxy |
 | `nginx/vvlab-upstream.conf.example` | 主机 Nginx 配置示例（迁移参考） |
+| `mysql/*` | MySQL 8 部署与参数说明（面向后续业务） |
 
 ---
 
@@ -148,7 +149,56 @@ kubectl patch svc traefik -n kube-system --type=merge -p '{"spec":{"type":"Clust
 
 ---
 
-## 5. 一键脚本用法（推荐）
+## 5. 安装 MySQL（用于后续服务数据库）
+
+MySQL YAML 与参数说明已写在 `deploy/mysql/`，并已在你的集群中部署完成（命名空间：`demo`，Service：`mysql`）。
+
+如果你需要在新机/重装时复现：
+
+### 5.1 创建 Secret（必须，包含密码）
+
+不要把密码提交到 Git 仓库。请在服务器上创建：
+
+```bash
+kubectl -n demo delete secret mysql-secret --ignore-not-found=true
+
+kubectl -n demo create secret generic mysql-secret \
+  --from-literal=MYSQL_ROOT_PASSWORD='你的root密码' \
+  --from-literal=MYSQL_PASSWORD='你的app用户密码'
+```
+
+说明：
+- Deployment 固定使用 `MYSQL_USER=appuser`、`MYSQL_DATABASE=appdb`；
+- 密码由 `mysql-secret` 提供（key 为 `MYSQL_ROOT_PASSWORD` / `MYSQL_PASSWORD`）。
+
+### 5.2 应用 MySQL 资源
+
+```bash
+cd /root/deploy/mysql
+kubectl -n demo apply -f 01-mysql-configmap.yaml
+kubectl -n demo apply -f 02-mysql-pvc.yaml
+kubectl -n demo apply -f 03-mysql-deployment.yaml
+kubectl -n demo apply -f 04-mysql-service.yaml
+```
+
+### 5.3 验证
+
+```bash
+kubectl -n demo get pods -l app=mysql
+kubectl -n demo logs deploy/mysql --tail=80
+kubectl -n demo get svc mysql
+```
+
+### 5.4 后续服务连接方式
+
+- Host：`mysql`（同在 `demo` 命名空间的服务可直接用）
+- Port：`3306`
+- Database：`appdb`
+- User：`appuser`
+
+---
+
+## 6. 一键脚本用法（推荐）
 
 服务器上执行：
 
