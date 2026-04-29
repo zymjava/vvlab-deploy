@@ -61,6 +61,17 @@ kubectl -n demo get svc mysql
 - 优先检查 `mysql-secret` 是否存在且 key 是否为 `MYSQL_ROOT_PASSWORD` / `MYSQL_PASSWORD`；
 - 检查 PVC 是否绑定成功（`kubectl -n demo get pvc`）。
 
+## 4.1 服务器内存占用观测（记录用）
+
+你提供的观测信息（用于后续评估资源是否需要调整）：
+
+- 安装 MySQL 前：内存已占用 `56.144%`
+- 安装 MySQL 后（阿里云控制台查看）：内存占用 `75.71%`
+
+该数据用于提醒：后续若再部署更多服务，可能需要：
+- 调小 `innodb_buffer_pool_size` / requests / limits；
+- 或者将 MySQL 换到更大实例（按实际业务量）。
+
 ## 5. 后续服务连接 MySQL
 
 同命名空间 `demo` 下，连接地址：
@@ -74,4 +85,39 @@ kubectl -n demo get svc mysql
 若后续服务在其他命名空间，则用全限定域名：
 
 - `mysql.demo.svc.cluster.local`
+
+## 6. 外网用 DBeaver 直连（需要额外 Service）
+
+当前的 `04-mysql-service.yaml` 是 `ClusterIP`，只能在集群内部访问；如果你希望从外网（DBeaver 所在电脑）直接连接，需要再创建一个面向外网的 Service（通常用 `NodePort`）。
+
+建议做法：应用 `05-mysql-nodeport.yaml`（新增文件，创建的是 `mysql-external` Service），并在**服务器安全组**放行 `NodePort` 端口。
+
+### 6.1 创建 NodePort Service
+
+```bash
+kubectl -n demo apply -f 05-mysql-nodeport.yaml
+kubectl -n demo get svc mysql-external
+```
+
+### 6.2 DBeaver 连接方式（外网）
+
+- Host：`139.224.31.98`
+- Port：`30306`（对应 `mysql-external` 的固定 nodePort；若你改了 nodePort，请以实际为准）
+- Database：`appdb`
+- User：`appuser`
+- Password：从 `mysql-secret` 读取（见下一节）
+
+### 6.3 查看 `mysql-secret` 里的 `MYSQL_PASSWORD`（得到明文）
+
+在服务器上执行：
+
+```bash
+kubectl -n demo get secret mysql-secret -o jsonpath='{.data.MYSQL_PASSWORD}' | base64 -d
+```
+
+如果你也想看 root 密码：
+
+```bash
+kubectl -n demo get secret mysql-secret -o jsonpath='{.data.MYSQL_ROOT_PASSWORD}' | base64 -d
+```
 
