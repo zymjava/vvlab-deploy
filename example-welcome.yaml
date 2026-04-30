@@ -73,6 +73,13 @@ spec:
           image: docker.m.daocloud.io/library/nginx:alpine
           ports:
             - containerPort: 80
+          resources:
+            requests:
+              cpu: "25m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
           volumeMounts:
             - name: html
               mountPath: /usr/share/nginx/html

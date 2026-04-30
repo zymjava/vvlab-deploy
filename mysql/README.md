@@ -9,7 +9,7 @@
 - `ConfigMap`：`mysql-config`（`my.cnf` 配置）
 - `PersistentVolumeClaim`：`mysql-pvc`（数据持久化）
 - `Secret`：`mysql-secret`（密码，仅在服务器创建，不建议写入仓库）
-- `Deployment`：`mysql`（镜像 `mysql:8.0`，resources 按 2C2G 做了限制）
+- `Deployment`：`mysql`（镜像 `docker.m.daocloud.io/library/mysql:8.0`，单实例 + `Recreate`，resources 已按 2C2G 机器做保守收缩）
 - `Service`：`mysql`（ClusterIP，3306 端口）
 
 对应文件：
@@ -63,14 +63,73 @@ kubectl -n demo get svc mysql
 
 ## 4.1 服务器内存占用观测（记录用）
 
-你提供的观测信息（用于后续评估资源是否需要调整）：
+你提供 / 现场复核过的观测信息如下（同一台 2C2G 机器，含 K3s、Ingress、站点 Pod、MySQL）：
 
 - 安装 MySQL 前：内存已占用 `56.144%`
-- 安装 MySQL 后（阿里云控制台查看）：内存占用 `75.71%`
+- 初次部署 MySQL 后（阿里云控制台查看）：内存占用 `78.049%`
+- 调优后一次观测：内存占用 `65.895%`
+- 集群继续精简后（禁用 `Traefik`、压缩 `ingress-nginx`、补齐静态站点资源限制），`kubectl top nodes` 视角约 `58%`
 
-该数据用于提醒：后续若再部署更多服务，可能需要：
-- 调小 `innodb_buffer_pool_size` / requests / limits；
-- 或者将 MySQL 换到更大实例（按实际业务量）。
+### 4.1.1 `78.049%` 对应的配置（调优前）
+
+- 镜像：`docker.m.daocloud.io/library/mysql:8.0`
+- Deployment 策略：默认滚动更新（未显式设置 `Recreate`）
+- resources:
+  - request：`cpu 250m` / `memory 256Mi`
+  - limit：`cpu 500m` / `memory 512Mi`
+- `my.cnf` 关键参数：
+  - `innodb_buffer_pool_size = 512M`
+  - `max_connections = 50`
+  - `key_buffer_size = 32M`
+  - `sort_buffer_size = 1M`
+  - `join_buffer_size = 1M`
+  - `read_buffer_size = 1M`
+  - `read_rnd_buffer_size = 1M`
+  - `tmp_table_size = 64M`
+  - `max_heap_table_size = 64M`
+  - `performance_schema = ON`（MySQL 默认）
+
+### 4.1.2 `63.672%` / `65.895%` 对应的配置（调优后）
+
+- 镜像：`docker.m.daocloud.io/library/mysql:8.0`
+- Deployment 策略：`Recreate`
+- resources:
+  - request：`cpu 250m` / `memory 192Mi`
+  - limit：`cpu 500m` / `memory 384Mi`
+- `my.cnf` 关键参数：
+  - `innodb_buffer_pool_size = 256M`
+  - `max_connections = 30`
+  - `key_buffer_size = 8M`
+  - `sort_buffer_size = 512K`
+  - `join_buffer_size = 512K`
+  - `read_buffer_size = 512K`
+  - `read_rnd_buffer_size = 512K`
+  - `tmp_table_size = 32M`
+  - `max_heap_table_size = 32M`
+  - `performance_schema = OFF`
+
+说明：
+- `63.672%` 与 `65.895%` 都属于调优后区间，差异通常来自内核 page cache、K3s 组件瞬时波动、镜像/日志/监控采样时点不同；
+- 当前这套参数已经明显低于最初的 `78.049%`，更适合这台 2C2G 机器长期运行。
+
+### 4.1.3 `58%`（K8s 节点视角）查看命令
+
+```bash
+kubectl top nodes
+kubectl top pods -A --sort-by=memory
+free -h
+ps -eo pid,ppid,comm,%mem,rss,args --sort=-rss | grep -E 'k3s|nginx|containerd' | grep -v grep | head -n 20
+```
+
+说明：
+- `kubectl top nodes` 是这次“节点视角压到 58%”的直接来源；
+- `free -h` 看的是主机整体内存，不同于 K8s metrics-server 的统计口径；
+- 继续压低内存的动作不是只改 MySQL，还包括禁用 K3s 自带 `Traefik`、把 `ingress-nginx` 调成单 worker、以及给 `welcome` / `zxy-site` 补 `requests` / `limits`。
+
+该数据用于提醒：后续若再部署更多服务，仍优先考虑：
+- 继续约束非数据库 Pod 的 `requests` / `limits`；
+- 避免启用不必要的 K3s 组件；
+- 若业务量显著上升，再考虑回调 MySQL 参数或升级实例规格。
 
 ## 5. 后续服务连接 MySQL
 

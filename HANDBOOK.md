@@ -147,6 +147,73 @@ FROM docker.m.daocloud.io/library/nginx:alpine
 kubectl patch svc traefik -n kube-system --type=merge -p '{"spec":{"type":"ClusterIP"}}'
 ```
 
+补充说明：
+- `Traefik` 是 K3s 自带的 Ingress Controller，作用与后面手工安装的 `ingress-nginx` 类似，都是“接收外部 HTTP/HTTPS 请求，再按 Ingress 规则转发到 Service”；
+- 当前这台机器已经使用 `ingress-nginx` 作为正式入口，因此 `Traefik` 属于重复组件；
+- 为了进一步降低 2C2G 机器上的内存占用，现已在运行中的 K3s 中禁用 `Traefik`，并且在 `02-install-k3s.sh` 中加入了 `--disable traefik`，避免重装时再次带回。
+
+### 4.6 内存压缩与查看命令（2026-04）
+
+这台 2C2G 机器做过两轮优化后，**K8s 节点视角**已经从 64% 左右压到过 **58%**。查看命令如下：
+
+```bash
+kubectl top nodes
+kubectl top pods -A --sort-by=memory
+free -h
+ps -eo pid,ppid,comm,%mem,rss,args --sort=-rss | grep -E 'k3s|nginx|containerd' | grep -v grep | head -n 20
+```
+
+其中：
+- `kubectl top nodes`：看 **K8s 节点视角** 的 CPU / 内存占用（例如 `MEMORY(%) = 58%`）；
+- `kubectl top pods -A --sort-by=memory`：看哪个 Pod 最占内存；
+- `free -h`：看主机整体内存、cache、available；
+- `ps ...`：看主机进程视角下的 `k3s` / `containerd` / `nginx` RSS。
+
+本次线上实际采用的配置：
+
+1. **MySQL 降配**
+   - `innodb_buffer_pool_size = 256M`
+   - `max_connections = 30`
+   - `tmp_table_size = 32M`
+   - `max_heap_table_size = 32M`
+   - `performance_schema = OFF`
+   - `resources`：`request 250m / 192Mi`，`limit 500m / 384Mi`
+
+2. **静态站点补资源限制**
+   - `welcome`：`request 25m / 32Mi`，`limit 100m / 64Mi`
+   - `zxy-site`：`request 25m / 32Mi`，`limit 100m / 64Mi`
+
+3. **禁用 K3s 自带 Traefik**
+   - 安装脚本 `02-install-k3s.sh` 已加入：
+
+   ```bash
+   --disable traefik
+   ```
+
+   - 已在现网 `/etc/rancher/k3s/config.yaml` 中写入：
+
+   ```yaml
+   disable:
+     - traefik
+   ```
+
+4. **压缩 ingress-nginx**
+   - `ingress-nginx-controller` ConfigMap 已增加：
+
+   ```yaml
+   worker-processes: "1"
+   ```
+
+   这样 `ingress-nginx` 控制器内的 Nginx worker 数会固定为 1，适合单机小内存场景。
+
+5. **当前效果（一次已验证的样本）**
+   - `kubectl top nodes`：约 `58%`
+   - `mysql`：约 `145Mi`
+   - `ingress-nginx-controller`：约 `62Mi`
+   - `k3s server` 主进程：约 `589Mi RSS`
+
+说明：云厂商控制台、`kubectl top nodes`、`free -h` 的统计口径不同，数值有轻微波动是正常的；以趋势看，这轮优化已经显著低于最初的高位占用。
+
 ---
 
 ## 5. 安装 MySQL（用于后续服务数据库）

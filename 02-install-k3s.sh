@@ -40,7 +40,8 @@ curl -sfL https://rancher-mirror.rancher.cn/k3s/k3s-install.sh | \
     INSTALL_K3S_MIRROR=cn \
     INSTALL_K3S_SKIP_SELINUX_RPM=true \
     sh -s - \
-    --write-kubeconfig-mode 644
+    --write-kubeconfig-mode 644 \
+    --disable traefik
 
 echo "==> 等待 K3s 就绪..."
 sleep 5
